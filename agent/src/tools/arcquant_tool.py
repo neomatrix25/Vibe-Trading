@@ -36,6 +36,12 @@ def _call(endpoint: str, params: Dict[str, str] | None = None) -> Dict[str, Any]
         return {"error": str(e)}
 
 
+def _internal(data_type: str, params: Dict[str, str]) -> Dict[str, Any]:
+    """Call internal data endpoint (no ACP payment needed)."""
+    params["type"] = data_type
+    return _call("/api/internal/data", params)
+
+
 class ArcQuantPriceTool(BaseTool):
     """Get real-time price for a symbol (crypto or stocks)."""
 
@@ -58,7 +64,7 @@ class ArcQuantPriceTool(BaseTool):
 
     def execute(self, **kwargs: Any) -> str:
         symbol = kwargs["symbol"].upper()
-        data = _call("/api/acp/price", {"symbol": symbol})
+        data = _internal("price", {"symbol": symbol})
         return json.dumps(data, ensure_ascii=False)
 
 
@@ -97,7 +103,7 @@ class ArcQuantIndicatorsTool(BaseTool):
         }
         if "period" in kwargs:
             params["period"] = str(kwargs["period"])
-        data = _call("/api/acp/indicators", params)
+        data = _internal("indicators", params)
         return json.dumps(data, ensure_ascii=False)
 
 
@@ -160,7 +166,7 @@ class ArcQuantFundamentalsTool(BaseTool):
     repeatable = True
 
     def execute(self, **kwargs: Any) -> str:
-        data = _call("/api/acp/fundamentals", {"symbol": kwargs["symbol"].upper()})
+        data = _internal("fundamentals", {"symbol": kwargs["symbol"].upper()})
         return json.dumps(data, ensure_ascii=False)
 
 
@@ -209,7 +215,7 @@ class ArcQuantInsiderTool(BaseTool):
     repeatable = True
 
     def execute(self, **kwargs: Any) -> str:
-        data = _call("/api/acp/insider", {"symbol": kwargs["symbol"].upper()})
+        data = _internal("insider", {"symbol": kwargs["symbol"].upper()})
         return json.dumps(data, ensure_ascii=False)
 
 
@@ -234,7 +240,7 @@ class ArcQuantEarningsTool(BaseTool):
     repeatable = True
 
     def execute(self, **kwargs: Any) -> str:
-        data = _call("/api/acp/earnings", {"symbol": kwargs["symbol"].upper()})
+        data = _internal("earnings", {"symbol": kwargs["symbol"].upper()})
         return json.dumps(data, ensure_ascii=False)
 
 
@@ -274,5 +280,5 @@ class ArcQuantChartTool(BaseTool):
             params["period"] = kwargs["period"]
         if "indicators" in kwargs:
             params["indicators"] = kwargs["indicators"]
-        data = _call("/api/acp/chart", params)
+        data = _internal("chart", params)
         return json.dumps(data, ensure_ascii=False)
