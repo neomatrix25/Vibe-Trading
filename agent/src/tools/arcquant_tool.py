@@ -181,8 +181,98 @@ class ArcQuantSchemaDiscoveryTool(BaseTool):
 
     def execute(self, **kwargs: Any) -> str:
         data = _call("/api/v1/schema")
-        # Truncate if too large
         result = json.dumps(data, ensure_ascii=False)
         if len(result) > 8000:
             result = result[:8000] + "\n... [truncated]"
         return result
+
+
+class ArcQuantInsiderTool(BaseTool):
+    """Get insider trading activity for a stock."""
+
+    name = "arcquant_insider"
+    description = (
+        "Get recent insider buys and sells with transaction details. "
+        "Stocks only (AAPL, MSFT, TSLA, etc.). Shows who bought/sold, "
+        "how many shares, at what price, and when."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "symbol": {
+                "type": "string",
+                "description": "Stock symbol like AAPL, MSFT, TSLA",
+            },
+        },
+        "required": ["symbol"],
+    }
+    repeatable = True
+
+    def execute(self, **kwargs: Any) -> str:
+        data = _call("/api/acp/insider", {"symbol": kwargs["symbol"].upper()})
+        return json.dumps(data, ensure_ascii=False)
+
+
+class ArcQuantEarningsTool(BaseTool):
+    """Get earnings history and estimates for a stock."""
+
+    name = "arcquant_earnings"
+    description = (
+        "Get earnings history: actual EPS vs estimate, surprise %, "
+        "and upcoming earnings dates. Stocks only (AAPL, MSFT, etc.)."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "symbol": {
+                "type": "string",
+                "description": "Stock symbol like AAPL, MSFT",
+            },
+        },
+        "required": ["symbol"],
+    }
+    repeatable = True
+
+    def execute(self, **kwargs: Any) -> str:
+        data = _call("/api/acp/earnings", {"symbol": kwargs["symbol"].upper()})
+        return json.dumps(data, ensure_ascii=False)
+
+
+class ArcQuantChartTool(BaseTool):
+    """Generate a price chart with indicators and signals."""
+
+    name = "arcquant_chart"
+    description = (
+        "Generate a price chart PNG with technical indicators overlaid. "
+        "Supports: SMA, EMA, Bollinger Bands, RSI, MACD. "
+        "Returns base64-encoded PNG image data. "
+        "Works for both crypto (BTCUSDT) and stocks (AAPL)."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "symbol": {
+                "type": "string",
+                "description": "Symbol like BTCUSDT or AAPL",
+            },
+            "period": {
+                "type": "string",
+                "description": "Chart period: 1d, 1w, 1m, 3m, 6m, 1y (default 1m)",
+            },
+            "indicators": {
+                "type": "string",
+                "description": "Comma-separated indicators: sma,ema,bollinger,rsi,macd",
+            },
+        },
+        "required": ["symbol"],
+    }
+    repeatable = True
+
+    def execute(self, **kwargs: Any) -> str:
+        params: Dict[str, str] = {"symbol": kwargs["symbol"].upper()}
+        if "period" in kwargs:
+            params["period"] = kwargs["period"]
+        if "indicators" in kwargs:
+            params["indicators"] = kwargs["indicators"]
+        data = _call("/api/acp/chart", params)
+        return json.dumps(data, ensure_ascii=False)

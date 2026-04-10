@@ -29,6 +29,7 @@ def build_registry() -> ToolRegistry:
         ArcQuantPriceTool, ArcQuantIndicatorsTool,
         ArcQuantSignalEngineTool, ArcQuantFundamentalsTool,
         ArcQuantSchemaDiscoveryTool,
+        ArcQuantInsiderTool, ArcQuantEarningsTool, ArcQuantChartTool,
     )
     registry = ToolRegistry()
     for tool in [BashTool(), ReadFileTool(), WriteFileTool(),
@@ -40,7 +41,8 @@ def build_registry() -> ToolRegistry:
                  FactorAnalysisTool(), OptionsPricingTool(), SwarmTool(),
                  ArcQuantPriceTool(), ArcQuantIndicatorsTool(),
                  ArcQuantSignalEngineTool(), ArcQuantFundamentalsTool(),
-                 ArcQuantSchemaDiscoveryTool()]:
+                 ArcQuantSchemaDiscoveryTool(),
+                 ArcQuantInsiderTool(), ArcQuantEarningsTool(), ArcQuantChartTool()]:
         registry.register(tool)
     return registry
 
