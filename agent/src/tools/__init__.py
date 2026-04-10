@@ -31,6 +31,7 @@ def build_registry() -> ToolRegistry:
         ArcQuantSchemaDiscoveryTool,
         ArcQuantInsiderTool, ArcQuantEarningsTool, ArcQuantChartTool,
     )
+    from src.tools.exa_search_tool import ExaSearchTool, ExaFindSimilarTool
     registry = ToolRegistry()
     for tool in [BashTool(), ReadFileTool(), WriteFileTool(),
                  EditFileTool(), LoadSkillTool(), BacktestTool(),
@@ -42,7 +43,8 @@ def build_registry() -> ToolRegistry:
                  ArcQuantPriceTool(), ArcQuantIndicatorsTool(),
                  ArcQuantSignalEngineTool(), ArcQuantFundamentalsTool(),
                  ArcQuantSchemaDiscoveryTool(),
-                 ArcQuantInsiderTool(), ArcQuantEarningsTool(), ArcQuantChartTool()]:
+                 ArcQuantInsiderTool(), ArcQuantEarningsTool(), ArcQuantChartTool(),
+                 ExaSearchTool(), ExaFindSimilarTool()]:
         registry.register(tool)
     return registry
 
