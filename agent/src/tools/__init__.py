@@ -25,6 +25,11 @@ def build_registry() -> ToolRegistry:
     from src.tools.factor_analysis_tool import FactorAnalysisTool
     from src.tools.options_pricing_tool import OptionsPricingTool
     from src.tools.swarm_tool import SwarmTool
+    from src.tools.arcquant_tool import (
+        ArcQuantPriceTool, ArcQuantIndicatorsTool,
+        ArcQuantSignalEngineTool, ArcQuantFundamentalsTool,
+        ArcQuantSchemaDiscoveryTool,
+    )
     registry = ToolRegistry()
     for tool in [BashTool(), ReadFileTool(), WriteFileTool(),
                  EditFileTool(), LoadSkillTool(), BacktestTool(),
@@ -32,7 +37,10 @@ def build_registry() -> ToolRegistry:
                  TaskCreateTool(), TaskUpdateTool(), TaskListTool(), TaskGetTool(),
                  BackgroundRunTool(), CheckBackgroundTool(),
                  WebReaderTool(), DocReaderTool(),
-                 FactorAnalysisTool(), OptionsPricingTool(), SwarmTool()]:
+                 FactorAnalysisTool(), OptionsPricingTool(), SwarmTool(),
+                 ArcQuantPriceTool(), ArcQuantIndicatorsTool(),
+                 ArcQuantSignalEngineTool(), ArcQuantFundamentalsTool(),
+                 ArcQuantSchemaDiscoveryTool()]:
         registry.register(tool)
     return registry
 
