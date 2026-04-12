@@ -520,6 +520,102 @@ async def health_check():
     )
 
 
+# ── Direct tool endpoints (no LLM, instant) ────────────────────────
+
+_options_cache: dict = {}  # {symbol: {data, ts}}
+_CACHE_TTL = 300  # 5 minutes
+
+@app.get("/tools/options-overview")
+async def direct_options_overview(symbol: str = Query(..., description="US stock symbol")):
+    """Direct options overview — calls yfinance, no LLM. Cached 5 min."""
+    import time as _t
+    symbol = symbol.upper()
+
+    # Check cache
+    cached = _options_cache.get(symbol)
+    if cached and (_t.time() - cached["ts"]) < _CACHE_TTL:
+        return cached["data"]
+
+    # Call tool directly
+    from src.tools.options_overview_tool import OptionsOverviewTool
+    tool = OptionsOverviewTool()
+    result_str = tool.execute(symbol=symbol)
+
+    import json as _json
+    try:
+        data = _json.loads(result_str)
+    except Exception:
+        data = {"error": result_str}
+
+    # Cache
+    _options_cache[symbol] = {"data": data, "ts": _t.time()}
+    return data
+
+
+@app.get("/tools/options-chain")
+async def direct_options_chain(
+    symbol: str = Query(...),
+    expiry: str = Query(None),
+    strike_range: float = Query(5),
+):
+    """Direct options chain — calls yfinance, no LLM. Cached 5 min."""
+    import time as _t
+    symbol = symbol.upper()
+    cache_key = f"{symbol}:{expiry}:{strike_range}"
+
+    cached = _options_cache.get(cache_key)
+    if cached and (_t.time() - cached["ts"]) < _CACHE_TTL:
+        return cached["data"]
+
+    from src.tools.options_chain_tool import OptionsChainTool
+    tool = OptionsChainTool()
+    kwargs = {"symbol": symbol, "strike_range": strike_range}
+    if expiry:
+        kwargs["expiry"] = expiry
+    result_str = tool.execute(**kwargs)
+
+    import json as _json
+    try:
+        data = _json.loads(result_str)
+    except Exception:
+        data = {"error": result_str}
+
+    _options_cache[cache_key] = {"data": data, "ts": _t.time()}
+    return data
+
+
+@app.get("/tools/options-analytics")
+async def direct_options_analytics(
+    symbol: str = Query(...),
+    action: str = Query(..., description="max_pain | expected_move | iv_surface"),
+    expiry: str = Query(None),
+):
+    """Direct options analytics — no LLM."""
+    import time as _t
+    symbol = symbol.upper()
+    cache_key = f"analytics:{symbol}:{action}:{expiry}"
+
+    cached = _options_cache.get(cache_key)
+    if cached and (_t.time() - cached["ts"]) < _CACHE_TTL:
+        return cached["data"]
+
+    from src.tools.options_analytics_tool import OptionsAnalyticsTool
+    tool = OptionsAnalyticsTool()
+    kwargs = {"symbol": symbol, "action": action}
+    if expiry:
+        kwargs["expiry"] = expiry
+    result_str = tool.execute(**kwargs)
+
+    import json as _json
+    try:
+        data = _json.loads(result_str)
+    except Exception:
+        data = {"error": result_str}
+
+    _options_cache[cache_key] = {"data": data, "ts": _t.time()}
+    return data
+
+
 def _terminate_current_process() -> None:
     """Stop the current API process after the response has been sent."""
     time.sleep(0.25)
