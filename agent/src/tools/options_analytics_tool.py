@@ -13,6 +13,21 @@ from typing import Any, Dict, List
 from src.agent.tools import BaseTool
 
 
+def _is_weekday(date_str: str) -> bool:
+    """Check if date is Mon-Fri."""
+    try:
+        from datetime import datetime
+        return datetime.strptime(date_str, "%Y-%m-%d").weekday() < 5
+    except Exception:
+        return False
+
+
+def _filter_valid_expiries(expiries: tuple) -> list:
+    """Filter to weekday expiries only."""
+    valid = [d for d in expiries if _is_weekday(d)]
+    return valid if valid else list(expiries)
+
+
 class OptionsAnalyticsTool(BaseTool):
     """Compute max pain, expected move, or IV surface for US stock options."""
 
@@ -74,7 +89,8 @@ class OptionsAnalyticsTool(BaseTool):
                 except Exception:
                     pass
 
-            expiry = kwargs.get("expiry") or expiries[0]
+            valid_expiries = _filter_valid_expiries(expiries)
+            expiry = kwargs.get("expiry") or valid_expiries[0]
             if expiry not in expiries:
                 return json.dumps({"error": f"Expiry {expiry} not available", "available": list(expiries[:10])})
 
@@ -84,7 +100,7 @@ class OptionsAnalyticsTool(BaseTool):
                 return self._expected_move(ticker, symbol, spot, expiry)
             elif action == "iv_surface":
                 num = min(kwargs.get("num_expiries", 3), 5)
-                return self._iv_surface(ticker, symbol, spot, expiries[:num])
+                return self._iv_surface(ticker, symbol, spot, valid_expiries[:num])
             else:
                 return json.dumps({"error": f"Unknown action: {action}"})
 
