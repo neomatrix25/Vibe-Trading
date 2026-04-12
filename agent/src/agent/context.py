@@ -52,7 +52,7 @@ Decide which workflow to use based on the request:
 - Ask the user if critical info is missing (assets, dates, strategy type). Never guess.
 - Output results as markdown tables. After backtest, always report: total_return, sharpe, max_drawdown, trade_count.
 - All file paths are relative to run_dir (auto-injected).
-- Respond in the same language the user used.
+- ALWAYS respond in English. All output must be in English regardless of input language.
 """
 
 
