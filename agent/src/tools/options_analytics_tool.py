@@ -13,18 +13,18 @@ from typing import Any, Dict, List
 from src.agent.tools import BaseTool
 
 
-def _is_weekday(date_str: str) -> bool:
-    """Check if date is Mon-Fri."""
+def _is_friday(date_str: str) -> bool:
+    """Check if date is a Friday (standard options expiry)."""
     try:
         from datetime import datetime
-        return datetime.strptime(date_str, "%Y-%m-%d").weekday() < 5
+        return datetime.strptime(date_str, "%Y-%m-%d").weekday() == 4
     except Exception:
         return False
 
 
 def _filter_valid_expiries(expiries: tuple) -> list:
-    """Filter to weekday expiries only."""
-    valid = [d for d in expiries if _is_weekday(d)]
+    """Filter to Friday expiries only (skip 0DTE Mon/Wed/daily)."""
+    valid = [d for d in expiries if _is_friday(d)]
     return valid if valid else list(expiries)
 
 

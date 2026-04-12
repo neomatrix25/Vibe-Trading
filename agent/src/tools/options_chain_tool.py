@@ -20,11 +20,11 @@ from src.agent.tools import BaseTool
 RISK_FREE_RATE = 0.043
 
 
-def _is_trading_day(date_str: str) -> bool:
-    """Check if a date is a weekday (Mon-Fri). Does not check holidays."""
+def _is_friday(date_str: str) -> bool:
+    """Check if a date is a Friday. Standard options expiry day."""
     try:
         dt = datetime.strptime(date_str, "%Y-%m-%d")
-        return dt.weekday() < 5
+        return dt.weekday() == 4
     except Exception:
         return False
 
@@ -130,10 +130,11 @@ class OptionsChainTool(BaseTool):
             if not expiries:
                 return json.dumps({"error": f"No options data for {symbol}. US stocks only."})
 
-            # Filter to valid trading days only
-            valid_expiries = [d for d in expiries if _is_trading_day(d)]
+            # Filter to Friday expiries only (standard weekly/monthly)
+            # Skips 0DTE Mon/Wed/daily options — not useful for analysis
+            valid_expiries = [d for d in expiries if _is_friday(d)]
             if not valid_expiries:
-                valid_expiries = list(expiries)  # fallback if all filtered out
+                valid_expiries = list(expiries)  # fallback if no Fridays found
 
             if action == "expiries":
                 return json.dumps({
