@@ -188,68 +188,80 @@ class OptionsOverviewTool(BaseTool):
 
             iv_vs_hv = "premium" if atm_iv > hv_30d and hv_30d > 0 else "discount" if hv_30d > 0 else "unknown"
 
-            # ── Unusual activity (volume > 2x OI) ──
+            # ── Unusual activity + Top flow — scan ALL expiries ──
             unusual: List[Dict] = []
-            for _, r in chain.calls.iterrows():
-                vol = _safe_int(r.volume)
-                oi = _safe_int(r.openInterest)
-                if vol > 0 and oi > 0 and vol > 2 * oi:
-                    mid = (_safe_float(r.bid) + _safe_float(r.ask)) / 2 or _safe_float(r.lastPrice)
-                    unusual.append({
-                        "strike": float(r.strike),
-                        "type": "call",
-                        "volume": vol,
-                        "oi": oi,
-                        "ratio": round(vol / oi, 1),
-                        "premium_spent": f"${int(vol * mid * 100):,}",
-                    })
-            for _, r in chain.puts.iterrows():
-                vol = _safe_int(r.volume)
-                oi = _safe_int(r.openInterest)
-                if vol > 0 and oi > 0 and vol > 2 * oi:
-                    mid = (_safe_float(r.bid) + _safe_float(r.ask)) / 2 or _safe_float(r.lastPrice)
-                    unusual.append({
-                        "strike": float(r.strike),
-                        "type": "put",
-                        "volume": vol,
-                        "oi": oi,
-                        "ratio": round(vol / oi, 1),
-                        "premium_spent": f"${int(vol * mid * 100):,}",
-                    })
-            unusual.sort(key=lambda x: x["ratio"], reverse=True)
-
-            # ── Top flow (biggest $ notional) ──
             top_flow: List[Dict] = []
-            for _, r in chain.calls.iterrows():
-                vol = _safe_int(r.volume)
-                mid = (_safe_float(r.bid) + _safe_float(r.ask)) / 2 or _safe_float(r.lastPrice)
-                notional = vol * mid * 100
-                if notional > 100000:  # > $100K
-                    top_flow.append({
-                        "strike": float(r.strike),
-                        "type": "call",
-                        "volume": vol,
-                        "notional": f"${int(notional):,}",
-                        "notional_raw": notional,
-                        "direction": "bullish",
-                    })
-            for _, r in chain.puts.iterrows():
-                vol = _safe_int(r.volume)
-                mid = (_safe_float(r.bid) + _safe_float(r.ask)) / 2 or _safe_float(r.lastPrice)
-                notional = vol * mid * 100
-                if notional > 100000:
-                    top_flow.append({
-                        "strike": float(r.strike),
-                        "type": "put",
-                        "volume": vol,
-                        "notional": f"${int(notional):,}",
-                        "notional_raw": notional,
-                        "direction": "bearish",
-                    })
+
+            # Scan up to 10 nearest expiries for unusual activity
+            scan_expiries = friday_expiries[:10] if len(friday_expiries) >= 3 else list(expiries[:10])
+            for scan_exp in scan_expiries:
+                try:
+                    scan_chain = ticker.option_chain(scan_exp)
+                except Exception:
+                    continue
+
+                for _, r in scan_chain.calls.iterrows():
+                    vol = _safe_int(r.volume)
+                    oi = _safe_int(r.openInterest)
+                    mid = (_safe_float(r.bid) + _safe_float(r.ask)) / 2 or _safe_float(r.lastPrice)
+                    notional = vol * mid * 100
+                    if vol > 0 and oi > 0 and vol > 2 * oi:
+                        unusual.append({
+                            "strike": float(r.strike),
+                            "type": "call",
+                            "expiry": scan_exp,
+                            "volume": vol,
+                            "oi": oi,
+                            "ratio": round(vol / oi, 1),
+                            "premium_spent": f"${int(notional):,}",
+                            "premium_raw": notional,
+                        })
+                    if notional > 100000:
+                        top_flow.append({
+                            "strike": float(r.strike),
+                            "type": "call",
+                            "expiry": scan_exp,
+                            "volume": vol,
+                            "notional": f"${int(notional):,}",
+                            "notional_raw": notional,
+                            "direction": "bullish",
+                        })
+
+                for _, r in scan_chain.puts.iterrows():
+                    vol = _safe_int(r.volume)
+                    oi = _safe_int(r.openInterest)
+                    mid = (_safe_float(r.bid) + _safe_float(r.ask)) / 2 or _safe_float(r.lastPrice)
+                    notional = vol * mid * 100
+                    if vol > 0 and oi > 0 and vol > 2 * oi:
+                        unusual.append({
+                            "strike": float(r.strike),
+                            "type": "put",
+                            "expiry": scan_exp,
+                            "volume": vol,
+                            "oi": oi,
+                            "ratio": round(vol / oi, 1),
+                            "premium_spent": f"${int(notional):,}",
+                            "premium_raw": notional,
+                        })
+                    if notional > 100000:
+                        top_flow.append({
+                            "strike": float(r.strike),
+                            "type": "put",
+                            "expiry": scan_exp,
+                            "volume": vol,
+                            "notional": f"${int(notional):,}",
+                            "notional_raw": notional,
+                            "direction": "bearish",
+                        })
+
+            # Sort: unusual by premium (biggest bets first), top flow by notional
+            unusual.sort(key=lambda x: x.get("premium_raw", 0), reverse=True)
             top_flow.sort(key=lambda x: x["notional_raw"], reverse=True)
-            # Remove raw field before returning
+            # Remove raw fields before returning
+            for u in unusual:
+                u.pop("premium_raw", None)
             for f in top_flow:
-                del f["notional_raw"]
+                f.pop("notional_raw", None)
 
             # ── Gamma exposure (GEX) per strike ──
             gex: List[Dict] = []
