@@ -36,6 +36,7 @@ def build_registry() -> ToolRegistry:
     from src.tools.options_analytics_tool import OptionsAnalyticsTool
     from src.tools.options_strategy_tool import OptionsStrategyTool
     from src.tools.dcf_tool import DCFValuationTool
+    from src.tools.options_overview_tool import OptionsOverviewTool
     registry = ToolRegistry()
     for tool in [BashTool(), ReadFileTool(), WriteFileTool(),
                  EditFileTool(), LoadSkillTool(), BacktestTool(),
@@ -50,7 +51,8 @@ def build_registry() -> ToolRegistry:
                  ArcQuantInsiderTool(), ArcQuantEarningsTool(), ArcQuantChartTool(),
                  ExaSearchTool(), ExaFindSimilarTool(),
                  OptionsChainTool(), OptionsAnalyticsTool(),
-                 OptionsStrategyTool(), DCFValuationTool()]:
+                 OptionsStrategyTool(), DCFValuationTool(),
+                 OptionsOverviewTool()]:
         registry.register(tool)
     return registry
 
